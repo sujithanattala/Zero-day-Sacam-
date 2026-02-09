@@ -1,1 +1,372 @@
 
+import os
+
+base_path = "/content/drive/MyDrive/Zero_Day_Project"
+
+folders = [
+    "data/images/legitimate",
+    "data/urls",
+    "data/texts",
+    "models",
+    "notebooks",
+    "app"
+]
+
+for folder in folders:
+    os.makedirs(os.path.join(base_path, folder), exist_ok=True)
+
+print("Project folder structure created permanently in Google Drive")
+import os
+
+img_dir = "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate"
+
+images = os.listdir(img_dir)
+
+print("Number of legitimate images:", len(images))
+print("Sample image files:", images[:5])
+import torch
+import torch.nn as nn
+from torchvision import models, transforms
+from PIL import Image
+import os
+import numpy as np
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
+cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+
+# Remove final classification layer
+cnn = nn.Sequential(*list(cnn.children())[:-1])
+
+cnn.eval()
+IMG_DIR = "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate"
+
+image_files = [
+    f for f in os.listdir(IMG_DIR)
+    if f.lower().endswith((".png", ".jpg", ".jpeg", ".webp"))
+]
+
+print("Total legitimate images:", len(image_files))
+features = []
+
+with torch.no_grad():
+    for img_name in image_files:
+        img_path = os.path.join(IMG_DIR, img_name)
+        image = Image.open(img_path).convert("RGB")
+
+        img_tensor = transform(image).unsqueeze(0)
+        feat = cnn(img_tensor)
+
+        feat = feat.view(-1)  # Flatten to 512
+        features.append(feat.numpy())
+
+features = np.array(features)
+
+print("Feature shape:", features.shape)
+import torch.nn as nn
+
+class ImageAutoEncoder(nn.Module):
+    def __init__(self, input_dim=512):
+        super().__init__()
+
+        # Encoder compresses normal webpage features
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU()
+        )
+
+        # Decoder reconstructs normal features
+        self.decoder = nn.Sequential(
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, input_dim)
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
+model = ImageAutoEncoder(input_dim=512)
+
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+EPOCHS = 50
+
+for epoch in range(EPOCHS):
+    optimizer.zero_grad()
+
+    reconstructed = model(X)
+    loss = criterion(reconstructed, X)
+
+    loss.backward()
+    optimizer.step()
+
+    if (epoch + 1) % 5 == 0:
+        print(f"Epoch {epoch+1}/{EPOCHS} | Loss: {loss.item():.6f}")
+import torch
+import torch.nn as nn
+
+model = ImageAutoEncoder(input_dim=512)
+model.load_state_dict(
+    torch.load("/content/drive/MyDrive/Zero_Day_Project/models/image_autoencoder.pth",
+               map_location="cpu")
+)
+model.eval()
+
+print("Image autoencoder loaded for inference")
+def compute_image_anomaly(image_path):
+    from PIL import Image
+    import torchvision.transforms as transforms
+
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor()
+    ])
+
+    img = Image.open(image_path).convert("RGB")
+    img_tensor = transform(img).unsqueeze(0)
+
+    with torch.no_grad():
+        feat = cnn(img_tensor)
+        feat = feat.view(feat.size(0), -1)
+
+        reconstructed = model(feat)
+        anomaly_score = torch.mean((feat - reconstructed) ** 2).item()
+
+    return anomaly_score
+test_img = "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate/userinter.png"
+
+score = compute_image_anomaly(test_img)
+print("Anomaly Score (Legitimate):", score)
+import os
+
+os.makedirs(
+    "/content/drive/MyDrive/Zero_Day_Project/data/images/scam",
+    exist_ok=True
+)
+
+print("Scam image folder ready")
+test_img = "/content/drive/MyDrive/Zero_Day_Project/data/images/scam/fake1.jpg"
+
+score = compute_image_anomaly(test_img)
+print("Anomaly Score (Scam):", score)
+import os
+
+legit_dir = "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate"
+
+print("Directory exists:", os.path.exists(legit_dir))
+print("Files found:", os.listdir(legit_dir))
+print("Number of files:", len(os.listdir(legit_dir)))
+import torch
+import torch.nn as nn
+import torchvision.models as models
+
+# Load pretrained ResNet18
+cnn = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+
+# Remove classification head → feature extractor
+cnn = nn.Sequential(*list(cnn.children())[:-1])
+
+cnn.eval()
+
+print("CNN feature extractor loaded")
+import os
+
+MODELS_DIR = "/content/drive/MyDrive/Zero_Day_Project/models"
+print("Files in models folder:")
+print(os.listdir(MODELS_DIR))
+MODEL_PATH = "/content/drive/MyDrive/Zero_Day_Project/models/image_autoencoder.pth"
+
+model = ImageAutoEncoder(input_dim=512)
+model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+model.eval()
+
+print("Autoencoder loaded successfully")
+import torch
+import torch.nn as nn
+from PIL import Image
+from torchvision import transforms, models
+
+# ---------- Image transform ----------
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor()
+])
+
+# ---------- CNN Feature Extractor ----------
+cnn = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+cnn = nn.Sequential(*list(cnn.children())[:-1])
+cnn.eval()
+
+# ---------- Autoencoder (same architecture used in training) ----------
+class ImageAutoEncoder(nn.Module):
+    def __init__(self, input_dim=512):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, input_dim)
+        )
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+# ---------- Load trained model ----------
+MODEL_PATH = "/content/drive/MyDrive/Zero_Day_Project/models/image_autoencoder.pth"
+
+model = ImageAutoEncoder(input_dim=512)
+model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+model.eval()
+
+print("CNN + Autoencoder loaded successfully")
+
+# ---------- Anomaly Function ----------
+def compute_image_anomaly(image_path):
+    image = Image.open(image_path).convert("RGB")
+    img_tensor = transform(image).unsqueeze(0)
+
+    with torch.no_grad():
+        features = cnn(img_tensor)
+        features = features.view(features.size(0), -1)
+        reconstructed = model(features)
+
+    score = torch.mean((features - reconstructed) ** 2).item()
+    return score
+test_img = "/content/drive/MyDrive/Zero_Day_Project/data/images/scam/fake1.jpg"
+score = compute_image_anomaly(test_img)
+print("Anomaly Score (Scam):", score)
+import os
+import numpy as np
+
+legit_dir = "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate"
+
+legit_scores = []
+
+for file in os.listdir(legit_dir):
+    try:
+        path = os.path.join(legit_dir, file)
+        score = compute_image_anomaly(path)
+        legit_scores.append(score)
+    except Exception as e:
+        print(f"Skipped {file} | {e}")
+
+legit_scores = np.array(legit_scores)
+
+print("Legitimate images processed:", len(legit_scores))
+print("Min:", legit_scores.min())
+print("Mean:", legit_scores.mean())
+print("Max:", legit_scores.max())
+print("Std:", legit_scores.std())
+THRESHOLD = legit_scores.mean() + 2 * legit_scores.std()
+print("Learned anomaly threshold:", THRESHOLD)
+def detect_image_scam(image_path):
+    score = compute_image_anomaly(image_path)
+    if score > THRESHOLD:
+        return "❌ Scam / Fake", score
+    else:
+        return "✅ Legitimate", score
+print(detect_image_scam(
+    "/content/drive/MyDrive/Zero_Day_Project/data/images/scam/fake1.jpg"
+))
+
+print(detect_image_scam(
+    "/content/drive/MyDrive/Zero_Day_Project/data/images/legitimate/userinter.png"
+))
+# Path to your saved URLs
+URL_FILE = "/content/drive/MyDrive/Zero_Day_Project/data/urls/legitimate.txt"
+
+with open(URL_FILE, "r") as f:
+    urls = [line.strip() for line in f if line.strip()]
+
+print("Total legitimate URLs loaded:", len(urls))
+print("Sample URLs:")
+for u in urls[:5]:
+    print(u)
+import re
+import math
+from urllib.parse import urlparse
+
+def url_features(url):
+    parsed = urlparse(url)
+
+    hostname = parsed.hostname or ""
+    path = parsed.path or ""
+
+    features = []
+
+    # Length-based features
+    features.append(len(url))
+    features.append(len(hostname))
+    features.append(len(path))
+
+    # Count-based features
+    features.append(url.count('.'))
+    features.append(url.count('-'))
+    features.append(url.count('@'))
+    features.append(url.count('?'))
+    features.append(url.count('='))
+    features.append(url.count('/'))
+
+    # Digit ratio
+    digits = sum(c.isdigit() for c in url)
+    features.append(digits / max(len(url), 1))
+
+    # Uppercase ratio
+    upper = sum(c.isupper() for c in url)
+    features.append(upper / max(len(url), 1))
+
+    # Entropy (randomness)
+    prob = [url.count(c) / len(url) for c in set(url)]
+    entropy = -sum(p * math.log2(p) for p in prob)
+    features.append(entropy)
+
+    # Subdomain depth
+    features.append(hostname.count('.'))
+
+    return features
+import numpy as np
+
+X_url = np.array([url_features(u) for u in urls])
+
+print("URL feature matrix shape:", X_url.shape)
+print("Sample feature vector:", X_url[0])
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+# Convert URL features to tensor
+X_url_tensor = torch.tensor(X_url, dtype=torch.float32)
+
+# URL Autoencoder
+class URLAutoEncoder(nn.Module):
+    def __init__(self, input_dim):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 8),
+            nn.ReLU(),
+            nn.Linear(8, 4)
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(4, 8),
+            nn.ReLU(),
+            nn.Linear(8, input_dim)
+        )
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+
+url_model = URLAutoEncoder(input_dim=X_url.shape[1])
+criterion = nn.MSELoss()
+optimizer = optim.Adam(url_model.parameters(), lr=0.01)
+
+print("URL Autoencoder initialized")
